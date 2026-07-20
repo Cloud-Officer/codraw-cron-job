@@ -8,7 +8,6 @@ permissions:
   pull-requests: read
 env:
   APP_ENV: test
-  APT-PACKAGES: blender ffmpeg geoip-database inkscape libcurl4-openssl-dev libgeoip1 libsox-fmt-mp3 sox wkhtmltopdf
   COMPOSER_EXIT_ON_PATCH_FAILURE: 1
   COMPOSER_MEMORY_LIMIT: -1
   COMPOSER_TOKEN: "${{ secrets.COMPOSER_AUTH }}"

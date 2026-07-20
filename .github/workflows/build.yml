@@ -189,7 +189,7 @@ jobs:
       with:
         ssh-key: "${{secrets.SSH_KEY}}"
         github-token: "${{secrets.GH_PAT}}"
-        parameters: "--no_prompt --ignored_folders pnp-scripts"
+        parameters: "--no_prompt"
   php_unit_tests:
     name: PHP Unit Tests
     runs-on: ubuntu-latest
