@@ -204,6 +204,7 @@ jobs:
       if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
       with:
         mysql-version: '8.0'
+        php-version: "${{env.PHP-VERSION}}"
         php-extensions: "${{env.PHP-EXTENSIONS}}"
         php-ini-values: "${{env.PHP-INI-VALUES}}"
         php-coverage: "${{env.PHP-COVERAGE}}"
