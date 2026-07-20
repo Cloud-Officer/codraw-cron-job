@@ -211,7 +211,7 @@ jobs:
         github-token: "${{secrets.GH_PAT}}"
     - name: Composer
       shell: bash
-      run: composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts && make update-wordlists
+      run: composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts
       env:
         GITHUB_TOKEN: "${{secrets.GH_PAT}}"
     - name: PHPUnit
