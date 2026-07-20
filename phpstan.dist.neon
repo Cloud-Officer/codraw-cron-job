@@ -1,0 +1,16 @@
+includes:
+	- phpstan-baseline.neon
+
+parameters:
+	level: 5
+	parallel:
+		maximumNumberOfProcesses: 8
+	paths:
+	    - ./
+
+	excludePaths:
+	    - vendor (?)
+
+	treatPhpDocTypesAsCertain: false
+
+	editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'

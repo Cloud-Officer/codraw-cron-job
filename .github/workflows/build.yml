@@ -1,0 +1,224 @@
+# github-build --organization cloud-officer
+---
+name: Build
+'on':
+  pull_request:
+    types:
+    - opened
+    - edited
+    - reopened
+    - synchronize
+  push:
+    branches:
+    - master
+    - "[0-9]*"
+    - dependabot/**
+    tags:
+    - "**"
+permissions:
+  contents: read
+  pull-requests: read
+env:
+  APP_ENV: test
+  COMPOSER_EXIT_ON_PATCH_FAILURE: 1
+  COMPOSER_MEMORY_LIMIT: -1
+  COMPOSER_TOKEN: "${{ secrets.COMPOSER_AUTH }}"
+  HOMEBREW_NO_INSTALL_CLEANUP: 'true'
+  PHP-COVERAGE: pcov
+  PHP-INI-VALUES: memory_limit=4G
+  PHP-TOOLS: composer
+  PHP-VERSION: 8.5.8
+  PHPCS-VERSION: v3.94.2
+concurrency:
+  group: build-${{github.ref}}
+  cancel-in-progress: true
+jobs:
+  variables:
+    name: Prepare Variables
+    runs-on: ubuntu-latest
+    outputs:
+      BUILD_NAME: "${{steps.variables.outputs.BUILD_NAME}}"
+      BUILD_VERSION: "${{steps.variables.outputs.BUILD_VERSION}}"
+      COMMIT_MESSAGE: "${{steps.variables.outputs.COMMIT_MESSAGE}}"
+      MODIFIED_GITHUB_RUN_NUMBER: "${{steps.variables.outputs.MODIFIED_GITHUB_RUN_NUMBER}}"
+      DEPLOY_ON_BETA: "${{steps.variables.outputs.DEPLOY_ON_BETA}}"
+      DEPLOY_ON_RC: "${{steps.variables.outputs.DEPLOY_ON_RC}}"
+      DEPLOY_ON_PROD: "${{steps.variables.outputs.DEPLOY_ON_PROD}}"
+      DEPLOY_MACOS: "${{steps.variables.outputs.DEPLOY_MACOS}}"
+      DEPLOY_TVOS: "${{steps.variables.outputs.DEPLOY_TVOS}}"
+      DEPLOY_OPTIONS: "${{steps.variables.outputs.DEPLOY_OPTIONS}}"
+      SKIP_LICENSES: "${{steps.variables.outputs.SKIP_LICENSES}}"
+      SKIP_LINTERS: "${{steps.variables.outputs.SKIP_LINTERS}}"
+      SKIP_TESTS: "${{steps.variables.outputs.SKIP_TESTS}}"
+      UPDATE_PACKAGES: "${{steps.variables.outputs.UPDATE_PACKAGES}}"
+      LINTERS: "${{steps.variables.outputs.LINTERS}}"
+    timeout-minutes: 30
+    steps:
+    - name: Prepare variables
+      id: variables
+      uses: cloud-officer/ci-actions/variables@v2
+      with:
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  actionlint:
+    name: Github Actions Linter
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1' && github.event_name == 'pull_request'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Actionlint
+      id: actionlint
+      uses: cloud-officer/ci-actions/linters/actionlint@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  markdownlint:
+    name: Markdown Linter
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1' && github.event_name == 'pull_request'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Markdownlint
+      id: markdownlint
+      uses: cloud-officer/ci-actions/linters/markdownlint@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  phpcs:
+    name: PHP CS Linter
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1'}}"
+    timeout-minutes: 30
+    steps:
+    - name: PHPCS
+      id: phpcs
+      uses: cloud-officer/ci-actions/linters/phpcs@v2
+      with:
+        php-cs-fixer-version: "${{env.PHPCS-VERSION}}"
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+        php-version: "${{env.PHP-VERSION}}"
+  phpstan:
+    name: PHP Stan Linter
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1'}}"
+    env:
+      APP_DEBUG: '1'
+    timeout-minutes: 30
+    steps:
+    - name: PHPStan
+      id: phpstan
+      uses: cloud-officer/ci-actions/linters/phpstan@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+        php-version: "${{env.PHP-VERSION}}"
+        php-extensions: "${{env.PHP-EXTENSIONS}}"
+        composer-command: composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts
+  semgrep:
+    name: Semgrep Security Scanner
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Semgrep
+      uses: cloud-officer/ci-actions/linters/semgrep@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  trivy:
+    name: Container & IaC Vulnerability Scanner
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Trivy
+      uses: cloud-officer/ci-actions/linters/trivy@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  yamllint:
+    name: YAML Linter
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LINTERS != '1' && github.event_name == 'pull_request'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Yamllint
+      id: yamllint
+      uses: cloud-officer/ci-actions/linters/yamllint@v2
+      with:
+        linters: "${{needs.variables.outputs.LINTERS}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+  licenses:
+    name: Licenses Check
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_LICENSES != '1'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Licenses
+      id: licenses
+      uses: cloud-officer/ci-actions/soup@v2
+      with:
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+        parameters: "--no_prompt --ignored_folders pnp-scripts"
+  php_unit_tests:
+    name: PHP Unit Tests
+    runs-on: ubuntu-latest
+    needs:
+    - variables
+    if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
+    timeout-minutes: 30
+    steps:
+    - name: Setup
+      id: setup
+      uses: cloud-officer/ci-actions/setup@v2
+      if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
+      with:
+        php-extensions: "${{env.PHP-EXTENSIONS}}"
+        php-ini-values: "${{env.PHP-INI-VALUES}}"
+        php-coverage: "${{env.PHP-COVERAGE}}"
+        php-tools: "${{env.PHP-TOOLS}}"
+        apt-packages: "${{env.APT-PACKAGES}}"
+        ssh-key: "${{secrets.SSH_KEY}}"
+        github-token: "${{secrets.GH_PAT}}"
+    - name: Composer
+      shell: bash
+      run: composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts && make update-wordlists
+      env:
+        GITHUB_TOKEN: "${{secrets.GH_PAT}}"
+    - name: PHPUnit
+      shell: bash
+      if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
+      run: |
+        CI=1 php -dpcov.directory=. vendor/bin/paratest --passthru-php="'-dpcov.directory=.'" --exclude-group=noCi --exclude-group=oneSignal-integration --coverage-clover ./tmp/phpunit/report/coverage.xml --display-skipped
+        php bin/console draw:tester:coverage-check ./tmp/phpunit/report/coverage.xml 65
+      env:
+        GITHUB_TOKEN: "${{secrets.GH_PAT}}"
