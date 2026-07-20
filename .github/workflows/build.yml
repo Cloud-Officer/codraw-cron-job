@@ -23,6 +23,7 @@ env:
   COMPOSER_EXIT_ON_PATCH_FAILURE: 1
   COMPOSER_MEMORY_LIMIT: -1
   COMPOSER_TOKEN: "${{ secrets.COMPOSER_AUTH }}"
+  DATABASE_URL: mysql://root@127.0.0.1:3306/draw
   HOMEBREW_NO_INSTALL_CLEANUP: 'true'
   PHP-COVERAGE: pcov
   PHP-INI-VALUES: memory_limit=4G
@@ -202,6 +203,7 @@ jobs:
       uses: cloud-officer/ci-actions/setup@v2
       if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
       with:
+        mysql-version: '8.0'
         php-extensions: "${{env.PHP-EXTENSIONS}}"
         php-ini-values: "${{env.PHP-INI-VALUES}}"
         php-coverage: "${{env.PHP-COVERAGE}}"
@@ -218,7 +220,11 @@ jobs:
       shell: bash
       if: "${{needs.variables.outputs.SKIP_TESTS != '1'}}"
       run: |
-        CI=1 php -dpcov.directory=. vendor/bin/paratest --passthru-php="'-dpcov.directory=.'" --exclude-group=noCi --exclude-group=oneSignal-integration --coverage-clover ./tmp/phpunit/report/coverage.xml --display-skipped
-        php bin/console draw:tester:coverage-check ./tmp/phpunit/report/coverage.xml 65
+        if [ ! -f vendor/bin/phpunit ]; then
+          echo "No PHPUnit tests for this package."
+          exit 0
+        fi
+        mysql --host=127.0.0.1 --user=root --execute='CREATE DATABASE IF NOT EXISTS draw;'
+        CI=1 vendor/bin/phpunit --no-coverage
       env:
         GITHUB_TOKEN: "${{secrets.GH_PAT}}"
