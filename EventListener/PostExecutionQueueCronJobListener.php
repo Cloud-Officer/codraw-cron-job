@@ -15,7 +15,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
  * This command listener allow to queue a cron job by name after the execution if it's a success.
  *
  * Example:
- *   console/bin acme:purge-database --draw-draw-post-execution-queue-cron-job
+ *   console/bin acme:purge-database --draw-post-execution-queue-cron-job
  */
 class PostExecutionQueueCronJobListener
 {
@@ -51,12 +51,12 @@ class PostExecutionQueueCronJobListener
             ;
 
             if (null === $cronJob) {
-                $this->logger->error(\sprintf('Cron job "%s" could not be found.', $cronJobName));
+                $this->logger?->error(\sprintf('Cron job "%s" could not be found.', $cronJobName));
 
                 continue;
             }
 
-            $this->logger->info(\sprintf('Queueing cron job "%s"...', $cronJob->getName()));
+            $this->logger?->info(\sprintf('Queueing cron job "%s"...', $cronJob->getName()));
 
             $this->cronJobProcessor->queue($cronJob, true);
         }

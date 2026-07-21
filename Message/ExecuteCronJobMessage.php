@@ -37,7 +37,9 @@ class ExecuteCronJobMessage implements DoctrineReferenceAwareInterface, Stamping
 
     public function stamp(Envelope $envelope): Envelope
     {
-        if (null !== ($priority = $this->execution?->getCronJob()?->getPriority())) {
+        $execution = $this->execution instanceof CronJobExecution ? $this->execution : null;
+
+        if (null !== ($priority = $execution?->getCronJob()?->getPriority())) {
             return $envelope->with(
                 AmqpStamp::createWithAttributes(['priority' => $priority])
             );

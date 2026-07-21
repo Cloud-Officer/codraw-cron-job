@@ -83,8 +83,8 @@ class CronJobProcessor
                 \sprintf(
                     "Error: %s\nOutput: %s\nError Output: %s\n",
                     $error->getMessage(),
-                    $process->getOutput(),
-                    $process->getErrorOutput()
+                    $process->isStarted() ? $process->getOutput() : '',
+                    $process->isStarted() ? $process->getErrorOutput() : ''
                 )
             );
         }
