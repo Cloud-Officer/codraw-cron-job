@@ -27,7 +27,6 @@ draw_framework_extra:
 ```
 
 > **_NOTE:_** The following services are available:
->
 > - **draw.cron_job.command.queue_cron_job_by_name_command**: Draw\Component\CronJob\Command\QueueCronJobByNameCommand
 > - **draw.cron_job.command.queue_due_cron_jobs_command**: Draw\Component\CronJob\Command\QueueDueCronJobsCommand
 > - **draw.cron_job.cron_job_processor**: Draw\Component\CronJob\CronJobProcessor
@@ -75,6 +74,5 @@ framework:
 
 Once the package is enabled, a new admin page will be available - **Cron Job**. The package also provides
 2 console commands:
-
-- **draw:cron-job:queue-due** - it is used to process due cron jobs by their configs; it should be configured as a cron to be executed with `* * * * *`
+- **draw:cron-job:queue-due** - it is used to process due cron jobs by their configs; it should be configured as a cron to be executed with * * * * *
 - **draw:cron-job:queue-by-name** - it allows to manually process a cron job by its name passed as an argument
